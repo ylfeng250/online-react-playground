@@ -1,0 +1,7 @@
+.code-editor {
+  height: 100%;
+  overflow: auto;
+}
+.code-editor textarea {
+  outline: none;
+}

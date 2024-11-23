@@ -10,3 +10,10 @@ export interface IFile {
 export interface IFiles {
   [key: string]: IFile;
 }
+
+export interface TreeNode {
+  title: string;
+  key: string;
+  children?: TreeNode[];
+  isLeaf?: boolean;
+}
