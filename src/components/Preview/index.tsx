@@ -1,6 +1,10 @@
 import { useMemo, useRef } from "react";
 
-const genIframeTemplate = (props: { importmap: any; code: string }) => {
+const genIframeTemplate = (props: {
+  importmap: any;
+  code: string;
+  componentName: string;
+}) => {
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -17,7 +21,7 @@ const genIframeTemplate = (props: { importmap: any; code: string }) => {
       import {createRoot} from "react-dom/client";
       ${props.code}
       const root = createRoot(document.getElementById("root"));
-      root.render(React.createElement(Component, null));
+      root.render(React.createElement(${props.componentName}, null));
     </script>
   </body>
 </html>
@@ -29,13 +33,16 @@ export interface PreviewProps {
     imports: Record<string, string>;
   };
   code: string;
+  componentName: string;
 }
 export const Preview: React.FC<PreviewProps> = (props) => {
-  const { importmap, code } = props;
+  const { importmap, code, componentName } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const iframeUrl = useMemo(() => {
     return URL.createObjectURL(
-      new Blob([genIframeTemplate({ importmap, code })], { type: "text/html" })
+      new Blob([genIframeTemplate({ importmap, code, componentName })], {
+        type: "text/html",
+      })
     );
   }, [importmap, code]);
 

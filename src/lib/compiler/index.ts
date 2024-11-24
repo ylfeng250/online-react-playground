@@ -61,14 +61,51 @@ export const css2Js = (file: IFile) => {
     new Blob([js], { type: "application/javascript" })
   );
 };
+
+export const generateImportMap = (dependencies: Record<string, string>) => {
+  const importMap = Object.entries(dependencies).reduce(
+    (acc, [key, value]) => {
+      // "@ali/react-button": "^5.1.1"
+      const pkgName = key;
+      const imports = acc.imports;
+      if (Object.keys(imports).includes(pkgName)) {
+        return acc;
+      }
+      let version = "";
+      if (value.startsWith("^")) {
+        version = value.slice(1);
+      } else {
+        version = value;
+      }
+      // NOTICE: 可能还有其他的情况
+      return {
+        ...acc,
+        imports: {
+          ...acc.imports,
+          [pkgName]: `https://esm.sh/${pkgName}@${version}?bundle`,
+        },
+      };
+    },
+    {
+      imports: {
+        react: "https://esm.sh/react",
+        "react-dom": "https://esm.sh/react-dom",
+        "react-dom/client": "https://esm.sh/react-dom/client",
+      },
+    }
+  );
+  return importMap;
+};
 export const filePathResolver = (files: IFiles) => {
   return {
     visitor: {
       ImportDeclaration(path: any) {
         const moduleName: string = path.node.source.value;
+        console.log("12312", moduleName);
         // 如果是相对路径，则替换为blob地址
         if (moduleName.startsWith(".")) {
           const module = getModuleFile(files, moduleName);
+          console.log("module", module);
           if (!module) return;
           if (module.name.endsWith(".css")) {
             path.node.source.value = css2Js(module);

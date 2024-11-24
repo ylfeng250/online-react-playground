@@ -37,6 +37,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         return languages.markup;
       case "css":
         return languages.css;
+      case "json":
+        return languages.js;
       default:
         return languages.markup;
     }

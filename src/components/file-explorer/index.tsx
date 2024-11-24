@@ -20,7 +20,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const onSelect: TreeProps["onSelect"] = (selectedKeys, info) => {
     if (info.node.isLeaf) {
-      onSelectFile(info.node.title as string);
+      onSelectFile(info.node.key as string);
     }
   };
 

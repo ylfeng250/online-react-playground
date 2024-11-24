@@ -1,44 +1,51 @@
-import { TreeNode } from "../../types/file-type";
+import { IFiles, TreeNode } from "../../types/file-type";
 type FileContents = { [key: string]: string };
-export function convertToTreeData(fileContents: FileContents): TreeNode[] {
+
+function buildDirectoryTree(paths: string[]): TreeNode[] {
   const root: TreeNode[] = [];
 
-  // Helper function to find or create a directory node
-  function findOrCreateDir(
-    path: string[],
-    parent: TreeNode[],
-    keyPrefix: string
-  ): TreeNode[] {
-    let currentLevel = parent;
+  paths.forEach((path) => {
+    const parts = path.split("/"); // 按路径分隔
+    let currentLevel = root;
 
-    path.forEach((segment, index) => {
-      let node = currentLevel.find((node) => node.title === segment);
-      if (!node) {
-        const newKey = `${keyPrefix}-${index}`;
-        node = { title: segment, key: newKey, children: [] };
-        currentLevel.push(node);
+    parts.forEach((part, index) => {
+      const isFile = index === parts.length - 1 && /\.[a-zA-Z0-9]+$/.test(part); // 判断是否是文件
+      const currentPath = parts.slice(0, index + 1).join("/"); // 构建当前节点的路径
+      const existingNode = currentLevel.find((node) => node.title === part);
+
+      if (existingNode) {
+        // 如果节点已存在，继续深入子级
+        if (!existingNode.isLeaf && existingNode.children) {
+          currentLevel = existingNode.children;
+        }
+      } else {
+        // 创建新节点
+        const newNode: TreeNode = {
+          title: part,
+          key: currentPath,
+          isLeaf: isFile,
+        };
+
+        if (!isFile) {
+          newNode.children = []; // 如果是目录，初始化子节点数组
+        }
+
+        currentLevel.push(newNode);
+
+        // 如果是目录类型，继续向下深入
+        if (!isFile && newNode.children) {
+          currentLevel = newNode.children;
+        }
       }
-      currentLevel = node.children!;
-    });
-
-    return currentLevel;
-  }
-
-  Object.keys(fileContents).forEach((filePath, fileIndex) => {
-    const pathSegments = filePath.split("/");
-    const fileName = pathSegments.pop()!; // Last segment is the file name
-    const isLeaf = fileName.includes(".");
-
-    // Find or create directories
-    const dir = findOrCreateDir(pathSegments, root, `0`);
-
-    // Add the file to the directory
-    dir.push({
-      title: fileName,
-      key: `${fileIndex}`,
-      isLeaf,
     });
   });
+
+  return root;
+}
+
+export function convertToTreeData(fileContents: IFiles): TreeNode[] {
+  const paths = Object.keys(fileContents);
+  const root = buildDirectoryTree(paths);
 
   return root;
 }
