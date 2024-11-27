@@ -1,4 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useEffect } from "react";
+import { debounce } from "lodash";
 
 const genIframeTemplate = (props: {
   importmap: any;
@@ -14,6 +15,11 @@ const genIframeTemplate = (props: {
     <script type="importmap">
       ${JSON.stringify(props.importmap)}
     </script>
+    <style>
+      * {
+        transition: all 0.2s ease-in-out;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
@@ -35,28 +41,53 @@ export interface PreviewProps {
   code: string;
   componentName: string;
 }
+
 export const Preview: React.FC<PreviewProps> = (props) => {
   const { importmap, code, componentName } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const iframeUrl = useMemo(() => {
-    return URL.createObjectURL(
-      new Blob([genIframeTemplate({ importmap, code, componentName })], {
-        type: "text/html",
-      })
-    );
-  }, [importmap, code]);
+  const prevUrlRef = useRef<string>();
+
+  const updateIframe = useMemo(
+    () =>
+      debounce((content: string) => {
+        if (iframeRef.current?.contentWindow) {
+          const blob = new Blob([content], { type: "text/html" });
+          const url = URL.createObjectURL(blob);
+          
+          if (prevUrlRef.current) {
+            URL.revokeObjectURL(prevUrlRef.current);
+          }
+          
+          iframeRef.current.src = url;
+          prevUrlRef.current = url;
+        }
+      }, 300),
+    []
+  );
+
+  useEffect(() => {
+    const content = genIframeTemplate({ importmap, code, componentName });
+    updateIframe(content);
+  }, [importmap, code, componentName, updateIframe]);
+
+  useEffect(() => {
+    return () => {
+      if (prevUrlRef.current) {
+        URL.revokeObjectURL(prevUrlRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
       <iframe
-        key="preview-iframe"
         ref={iframeRef}
-        src={iframeUrl}
         style={{
           width: "100%",
           height: "100%",
           padding: 0,
           border: "none",
+          transition: "opacity 0.2s ease-in-out",
         }}
         sandbox="allow-popups-to-escape-sandbox allow-scripts allow-popups allow-forms allow-pointer-lock allow-top-navigation allow-modals allow-same-origin"
       />

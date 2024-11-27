@@ -26,14 +26,36 @@ const babelTransform = (filename: string, code: string, files: IFiles) => {
       sourceMaps: false,
     }).code!;
   } catch (error) {
-    // TODO: 错误处理
     result = `Error: ${error}`;
   }
   return result;
 };
 
 export const getModuleFile = (files: IFiles, moduleName: string) => {
-  return Object.values(files).find((file) => file.name === moduleName);
+  // 支持的文件扩展名
+  const extensions = ['.tsx', '.ts', '.jsx', '.js'];
+  
+  // 处理路径，移除开头的 ./ 或 /
+  const normalizedName = moduleName.replace(/^\.?\//, '');
+  
+  // 首先尝试直接匹配完整文件名
+  const exactMatch = Object.values(files).find((file) => {
+    const normalizedFileName = file.name.replace(/^\.?\//, '');
+    return normalizedFileName === normalizedName || normalizedFileName === moduleName;
+  });
+  if (exactMatch) return exactMatch;
+
+  // 如果没有找到，尝试添加不同的扩展名进行匹配
+  for (const ext of extensions) {
+    const fileWithExt = Object.values(files).find((file) => {
+      const normalizedFileName = file.name.replace(/^\.?\//, '');
+      return normalizedFileName === normalizedName + ext || 
+             normalizedFileName === moduleName + ext;
+    });
+    if (fileWithExt) return fileWithExt;
+  }
+  
+  return undefined;
 };
 
 export const json2Js = (file: any) => {
@@ -101,11 +123,9 @@ export const filePathResolver = (files: IFiles) => {
     visitor: {
       ImportDeclaration(path: any) {
         const moduleName: string = path.node.source.value;
-        console.log("12312", moduleName);
         // 如果是相对路径，则替换为blob地址
         if (moduleName.startsWith(".")) {
           const module = getModuleFile(files, moduleName);
-          console.log("module", module);
           if (!module) return;
           if (module.name.endsWith(".css")) {
             path.node.source.value = css2Js(module);

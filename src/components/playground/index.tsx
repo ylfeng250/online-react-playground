@@ -1,115 +1,138 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect } from "react";
 import { Splitter } from "antd";
 import FileExplorer from "../file-explorer";
 import CodeEditor from "../code-editor";
-import { convertToTreeData } from "../../lib/file/conver-to-tree-data";
-import { IFiles } from "../../types/file-type";
 import { compile, generateImportMap } from "../../lib/compiler";
 import { Preview } from "../preview";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { addFile, setCurrentFile, updateFile } from "../../store/fileSlice";
+import { FileNode } from "../../types/file";
 
-// 模拟文件内容
-const initialFileContents: IFiles = {
-  "./App.css": {
-    name: "./App.css",
+// 初始化文件内容
+const initialFiles: FileNode[] = [
+  {
+    id: "./App.css",
+    name: "App.css",
+    path: "./App.css",
     content: "body {\n  background-color: #f0f0f0;\n}",
     type: "css",
+    isDirectory: false
   },
-  "./App.tsx": {
-    name: "./App.tsx",
+  {
+    id: "./App.tsx",
+    name: "App.tsx",
+    path: "./App.tsx",
     content: `import "./App.css";
   
-  function App() {
-    return <div className="App">Hello World!</div>;
-  }
-  
-  export default App;
-  `,
+function App() {
+  return <div className="App">Hello World!</div>;
+}
+
+export default App;
+`,
     type: "tsx",
+    isDirectory: false
   },
-  "package.json": {
-    name: "package.json",
-    content: `
   {
-    "main": "./App.tsx",
-    "dependencies": {
-      "react": "^18.2.0",
-      "react-dom": "^18.2.0"
-    }
+    id: "package.json",
+    name: "package.json",
+    path: "package.json",
+    content: `{
+  "main": "./App.tsx",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
-  `,
+}`,
     type: "json",
-  },
-};
+    isDirectory: false
+  }
+];
 
 const Playground: React.FC = () => {
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [fileContents, setFileContents] = useState(initialFileContents);
-  const [compilerOutput, setCompilerOutput] = useState("");
-  const entryFile = useMemo(() => {
+  const dispatch = useAppDispatch();
+  const files = useAppSelector((state) => state.file.files);
+  const currentFile = useAppSelector((state) => state.file.currentFile);
+  const fileTree = useAppSelector((state) => state.file.fileTree);
+  const [compilerOutput, setCompilerOutput] = React.useState("");
+
+  // 初始化文件
+  useEffect(() => {
+    if (Object.keys(files).length === 0) {
+      initialFiles.forEach((file) => {
+        dispatch(addFile(file));
+      });
+    }
+  }, [dispatch]);
+
+  const entryFile = React.useMemo(() => {
     try {
-      const pkg = JSON.parse(fileContents["package.json"]?.content);
-      if (!pkg) {
+      const pkgFile = files["package.json"];
+      if (!pkgFile) {
         return "./App.tsx";
       }
+      const pkg = JSON.parse(pkgFile.content);
       return pkg.main;
     } catch (e) {
       return "./App.tsx";
     }
-  }, [fileContents]);
+  }, [files]);
 
-  const importmap = useMemo(() => {
+  const importmap = React.useMemo(() => {
     try {
-      const pkg = JSON.parse(fileContents["package.json"]?.content);
+      const pkgFile = files["package.json"];
+      if (!pkgFile) {
+        return { imports: {} };
+      }
+      const pkg = JSON.parse(pkgFile.content);
       return generateImportMap(pkg.dependencies);
     } catch (e) {
       return {
         imports: {},
       };
     }
-  }, [fileContents]);
-  const compileCode = async (files: IFiles, entryFile: string) => {
-    const res = compile(entryFile, files);
+  }, [files]);
+
+  const compileCode = async () => {
+    const filesForCompiler = Object.values(files).reduce((acc, file) => {
+      acc[file.path] = {
+        name: file.path,
+        content: file.content,
+        type: file.type || 'tsx'
+      };
+      return acc;
+    }, {} as any);
+    
+    const res = compile(entryFile, filesForCompiler);
     setCompilerOutput(res.compileCode);
   };
 
-  const fileStructure = useMemo(() => {
-    return convertToTreeData(initialFileContents);
-  }, [fileContents]);
   const handleSelectFile = (fileName: string) => {
-    setSelectedFile(fileName);
+    dispatch(setCurrentFile(fileName));
   };
 
   const handleCodeChange = (newCode: string) => {
-    if (selectedFile) {
-      setFileContents((prev) => ({
-        ...prev,
-        [selectedFile]: {
-          ...prev[selectedFile],
-          content: newCode,
-        },
-      }));
+    if (currentFile) {
+      dispatch(updateFile({ id: currentFile, content: newCode }));
     }
   };
 
   useEffect(() => {
-    compileCode(fileContents, entryFile);
-  }, [fileContents]);
+    compileCode();
+  }, [files, entryFile]);
 
   return (
     <Splitter>
       <Splitter.Panel defaultSize={200}>
-        <FileExplorer
-          onSelectFile={handleSelectFile}
-          fileStructure={fileStructure}
-        />
+        <FileExplorer onSelectFile={handleSelectFile} fileStructure={fileTree} />
       </Splitter.Panel>
       <Splitter.Panel>
         <Splitter>
           <Splitter.Panel>
-            {selectedFile ? (
+            {currentFile ? (
               <CodeEditor
-                fileName={selectedFile}
-                code={fileContents[selectedFile].content || ""}
+                fileName={currentFile}
+                code={files[currentFile]?.content || ""}
                 onCodeChange={handleCodeChange}
               />
             ) : (
