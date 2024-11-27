@@ -7,29 +7,26 @@ import { Preview } from "../preview";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { addFile, setCurrentFile, updateFile } from "../../store/fileSlice";
 import { FileNode } from "../../types/file";
+import CustomButtonRaw from "../../example/CustomButton.tsx?raw";
+import CustomButtonCss from "../../example/CustomButton.css?raw";
+import pkgRaw from "../../example/package.json?raw";
+import { getComponentNameFromPath } from "../../utils/getComponentNameFromPath";
 
 // 初始化文件内容
 const initialFiles: FileNode[] = [
   {
-    id: "./App.css",
-    name: "App.css",
-    path: "./App.css",
-    content: "body {\n  background-color: #f0f0f0;\n}",
+    id: "./CustomButton.css",
+    name: "CustomButton.css",
+    path: "./CustomButton.css",
+    content: CustomButtonCss,
     type: "css",
     isDirectory: false
   },
   {
-    id: "./App.tsx",
-    name: "App.tsx",
-    path: "./App.tsx",
-    content: `import "./App.css";
-  
-function App() {
-  return <div className="App">Hello World!</div>;
-}
-
-export default App;
-`,
+    id: "./CustomButton.tsx",
+    name: "CustomButton.tsx",
+    path: "./CustomButton.tsx",
+    content: CustomButtonRaw,
     type: "tsx",
     isDirectory: false
   },
@@ -37,13 +34,7 @@ export default App;
     id: "package.json",
     name: "package.json",
     path: "package.json",
-    content: `{
-  "main": "./App.tsx",
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  }
-}`,
+    content: pkgRaw,
     type: "json",
     isDirectory: false
   }
@@ -72,12 +63,12 @@ const Playground: React.FC = () => {
     try {
       const pkgFile = files["package.json"];
       if (!pkgFile) {
-        return "./App.tsx";
+        return "./CustomButton.tsx";
       }
       const pkg = JSON.parse(pkgFile.content);
       return pkg.main;
     } catch (e) {
-      return "./App.tsx";
+      return "./CustomButton.tsx";
     }
   }, [files]);
 
@@ -110,7 +101,7 @@ const Playground: React.FC = () => {
       console.error('Entry file not found:', entryFile);
       return;
     }
-
+    console.log('Compiling entry file:', entryFile);
     try {
       const res = compile(entryFile, filesForCompiler);
       setCompilerOutput(res.compileCode);
@@ -123,6 +114,7 @@ const Playground: React.FC = () => {
 
   const handleSelectFile = (fileName: string) => {
     dispatch(setCurrentFile(fileName));
+    setShowPreview(false); // Switch to editor mode when a file is selected
   };
 
   const handleCodeChange = (newCode: string) => {
@@ -233,7 +225,11 @@ const Playground: React.FC = () => {
                 background: token.colorBgContainer,
                 padding: token.padding
               }}>
-                <Preview code={compilerOutput} importmap={importmap} componentName={"App"} />
+                <Preview 
+                  code={compilerOutput} 
+                  importmap={importmap} 
+                  componentName={getComponentNameFromPath(entryFile)} 
+                />
               </div>
             </div>
           </Flex>

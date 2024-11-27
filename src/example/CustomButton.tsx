@@ -1,8 +1,8 @@
 import { useState } from "react";
-import "./Component.css";
+import "./CustomButton.css";
 import { Button } from "antd";
 
-function Component() {
+function CustomButton() {
   const [count, setCount] = useState(0);
 
   return (
@@ -17,4 +17,4 @@ function Component() {
   );
 }
 
-export default Component;
+export default CustomButton;
