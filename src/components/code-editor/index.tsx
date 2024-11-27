@@ -1,14 +1,5 @@
 import React from "react";
-import Editor from "react-simple-code-editor";
-import { highlight, languages } from "prismjs";
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-typescript";
-import "prismjs/components/prism-jsx";
-import "prismjs/components/prism-tsx";
-import "prismjs/components/prism-css";
-import "prismjs/components/prism-markup";
-import "prismjs/themes/prism.css";
-// import "prismjs/themes/prism-dark.css";
+import Editor from "@monaco-editor/react";
 import styles from "./index.module.css";
 
 interface CodeEditorProps {
@@ -26,21 +17,21 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     const extension = fileName.split(".").pop();
     switch (extension) {
       case "js":
-        return languages.javascript;
+        return "javascript";
       case "jsx":
-        return languages.jsx;
+        return "javascript";
       case "ts":
-        return languages.typescript;
+        return "typescript";
       case "tsx":
-        return languages.tsx;
+        return "typescript";
       case "html":
-        return languages.markup;
+        return "html";
       case "css":
-        return languages.css;
+        return "css";
       case "json":
-        return languages.js;
+        return "json";
       default:
-        return languages.markup;
+        return "plaintext";
     }
   };
 
@@ -48,13 +39,16 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     <div className={styles["code-editor"]}>
       <Editor
         value={code}
-        onValueChange={onCodeChange}
-        highlight={(code) => highlight(code, getLanguage(fileName), fileName)}
-        padding={10}
-        style={{
-          fontFamily: '"Fira code", "Fira Mono", monospace',
+        onChange={(value) => onCodeChange(value || "")}
+        language={getLanguage(fileName)}
+        theme="vs-light"
+        options={{
+          minimap: { enabled: false },
           fontSize: 14,
-          height: "100%",
+          lineNumbers: "on",
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+          tabSize: 2,
         }}
       />
     </div>
