@@ -6,7 +6,7 @@ export interface FileNode {
   children?: FileNode[];
   isDirectory: boolean;
   parentId?: string;
-  type?: 'tsx' | 'ts' | 'js' | 'jsx' | 'css' | 'json';
+  type?: 'tsx' | 'ts' | 'js' | 'jsx' | 'css' | 'json' | 'directory';
 }
 
 export interface FileState {
